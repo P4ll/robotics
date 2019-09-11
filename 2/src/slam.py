@@ -7,13 +7,15 @@ import matplotlib.pyplot as plt
 import breezyslam as brs
 from breezyslam.sensors import URG04LX, Laser
 from breezyslam.algorithms import RMHC_SLAM
+from breezyslam.vehicles import WheeledVehicle
 from roboviz import MapVisualizer
 import keyboard
-# from rviz import MapVisualizer
+from settings import PioLaser, PioRobot
+
 
 class Slam():
-    MAP_SIZE_PIXELS = 800
-    MAP_SIZE_METERS = 32
+    MAP_SIZE_PIXELS = 800 # 1000
+    MAP_SIZE_METERS = 40
 
     propConst = 10.1
     integralConst = 1.5
@@ -83,7 +85,8 @@ class Slam():
 
         self.mapbytes = bytearray(self.MAP_SIZE_PIXELS * self.MAP_SIZE_PIXELS)
         # self.laser = URG04LX(70, 145)
-        self.laser = Laser(684, 10, 240, 4000, 70, 145)
+        self.laser = PioLaser()
+        self.robot = PioRobot()
         self.slam = RMHC_SLAM(self.laser, self.MAP_SIZE_PIXELS, self.MAP_SIZE_METERS, random_seed = 9999)
         self.viz = MapVisualizer(self.MAP_SIZE_PIXELS, self.MAP_SIZE_METERS, "1")
         self.pose = [0, 0, 0]
@@ -100,42 +103,46 @@ class Slam():
         # self.test = 0
         prevTime = 0
         while vrep.simxGetConnectionId(self.clientID) != -1:
-            if keyboard.is_pressed('w'):
-                self.addLeftSpeed(1)
-                self.addRightSpeed(1)
-            elif keyboard.is_pressed('s'):
-                self.addLeftSpeed(0)
-                self.addRightSpeed(0)
-            elif keyboard.is_pressed('a'):
-                self.addLeftSpeed(0)
-                self.addRightSpeed(1)
-            elif keyboard.is_pressed('d'):
-                self.addLeftSpeed(1)
-                self.addRightSpeed(0)
-            # (errorCode, sensorState, sensorDetection, detectedObjectHandle,
-            #     detectedSurfaceNormalVectorUp) = vrep.simxReadProximitySensor(self.clientID, self.sensor, vrep.simx_opmode_streaming)
-            # (errorCode, frontState, frontDetection, detectedObjectHandle,
-            #     detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.sensorFr, vrep.simx_opmode_streaming)
-            # if (frontState and sensorState):
-            #     self.calulate(sensorState, min(sensorDetection[2], frontDetection[2]))
-            # elif (frontState):
-            #     self.calulate(frontState, frontDetection[2])
-            # elif (sensorState):
-            #     self.calulate(sensorState, sensorDetection[2])
-            # else:
-            #     self.calulate(sensorState, self.reqDist + 0.1)
+            # if keyboard.is_pressed('j'):
+            #     self.addLeftSpeed(1)
+            #     self.addRightSpeed(1)
+            # elif keyboard.is_pressed('k'):
+            #     self.addLeftSpeed(0)
+            #     self.addRightSpeed(0)
+            # elif keyboard.is_pressed('h'):
+            #     self.addLeftSpeed(0)
+            #     self.addRightSpeed(1)
+            # elif keyboard.is_pressed('l'):
+            #     self.addLeftSpeed(1)
+            #     self.addRightSpeed(0)
+
+            (errorCode, sensorState, sensorDetection, detectedObjectHandle,
+                detectedSurfaceNormalVectorUp) = vrep.simxReadProximitySensor(self.clientID, self.sensor, vrep.simx_opmode_streaming)
+            (errorCode, frontState, frontDetection, detectedObjectHandle,
+                detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.sensorFr, vrep.simx_opmode_streaming)
+            if (frontState and sensorState):
+                self.calulate(sensorState, min(sensorDetection[2], frontDetection[2]))
+            elif (frontState):
+                self.calulate(frontState, frontDetection[2])
+            elif (sensorState):
+                self.calulate(sensorState, sensorDetection[2])
+            else:
+                self.calulate(sensorState, self.reqDist + 0.1)
             
             data = vrep.simxGetStringSignal(self.clientID, 'measuredDataAtThisTime', vrep.simx_opmode_oneshot_wait) #simx_opmode_streaming
             dataDists = vrep.simxGetStringSignal(self.clientID, 'dataDistsAtThisTime', vrep.simx_opmode_oneshot_wait)
+            rawOdometry = vrep.simxGetStringSignal(self.clientID, 'odometryAtThisTime', vrep.simx_opmode_oneshot_wait)
+            odometry = vrep.simxUnpackFloats(rawOdometry[1])
             meaData = vrep.simxUnpackFloats(data[1])
             dists = vrep.simxUnpackFloats(dataDists[1])
             # print(f"{len(dists)}")
             # print(dists)
             for i in range(len(dists)):
-                dists[i] = math.trunc(dists[i] * 1000)
+                dists[i] = (dists[i] * 1000)
                 if dists[i] == 5000 or dists[i] == 4999:
                     dists[i] = 0
-            self.slam.update(dists)
+            velocities = self.robot.computePoseChange(time.time(), odometry[0], odometry[1])
+            self.slam.update(dists, velocities)
             self.pose[0], self.pose[1], self.pose[2] = self.slam.getpos()
             self.slam.getmap(self.mapbytes)
 
@@ -143,7 +150,8 @@ class Slam():
             # if prevTime > 0:
             #     time.sleep(curTime - prevTime)
             # prevTime = curTime
-            
+            self.pose[2] -= velocities[1]
+            self.pose[2] -= 30
             if not self.viz.display(self.pose[0]/1000., self.pose[1]/1000., self.pose[2], self.mapbytes):
                 exit(0)
             # time.sleep(0.1)
