@@ -6,7 +6,7 @@ class PioLaser(Laser):
     
     def __init__(self):
         # detection_margin=70, offset_mm=145
-        Laser.__init__(self, 684, 10, 240, 5000, detection_margin=70, offset_mm=145)
+        Laser.__init__(self, 684, 10, 240, 20000, detection_margin=70, offset_mm=145) #detection_margin=70
         # URG04LX.__init__(self, 70, 145)
         
 
@@ -26,9 +26,7 @@ class PioRobot(WheeledVehicle):
         
         return WheeledVehicle.computePoseChange(self, timestamp, leftWheelOdometry, rightWheelOdometry)
 
-    def extractOdometry(self, timestamp, leftWheel, rightWheel):
-                
-        # Convert microseconds to seconds, ticks to angles        
+    def extractOdometry(self, timestamp, leftWheel, rightWheel):     
         return timestamp, \
                self._rad_to_degrees(leftWheel), \
                self._rad_to_degrees(rightWheel)
@@ -39,7 +37,7 @@ class PioRobot(WheeledVehicle):
                (odometry[0], odometry[1], odometry[2])
                
     def _rad_to_degrees(self, rad):
-        return rad * 57.2958
+        return rad * 100#57.2958
 
     def _ticks_to_degrees(self, ticks):
         
