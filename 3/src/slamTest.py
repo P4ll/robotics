@@ -39,6 +39,9 @@ class Slam():
     reqDist = 0.55
     frontAdd = -0.15
 
+    useMap = True
+    allCount = 0
+
     lowerGreen = np.array([0, 180, 0], dtype=np.uint8)
     upperGreen = np.array([50, 255, 56], dtype=np.uint8)
 
@@ -108,6 +111,10 @@ class Slam():
         self.slam = RMHC_SLAM(self.laser, self.MAP_SIZE_PIXELS, self.MAP_SIZE_METERS, random_seed = 9999, map_quality=1)
         self.viz = MapVisualizer(self.MAP_SIZE_PIXELS, self.MAP_SIZE_METERS, "1", True)
         self.pose = [0, 0, 0]
+        if (self.useMap):
+            file = open('robotMap.map', 'rb')
+            self.mapbytes = bytearray(file.read())
+            self.slam.setmap(self.mapbytes)
     
     def erCheck(self, e, str):
         if e == -1:
@@ -118,6 +125,15 @@ class Slam():
         perimetr = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.04 * perimetr, True)
         return len(approx)
+
+    def isSq(self, c):
+        perimetr = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.04 * perimetr, True)
+        if (len(approx) == 6):
+            return True
+        _, _, w, h = cv2.boundingRect(approx)
+        ar = w / float(h)
+        return True if ar >= 0.90 and ar <= 1.1 else False
 
     def imageProcessing(self, img):
         mask = cv2.inRange(img, self.lowerGreen, self.upperGreen)
@@ -130,10 +146,28 @@ class Slam():
         cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
         for c in cnts:
-            if (self.calcVertByCont(c) == 4):
-                cv2.drawContours(img, [c], -1, (255, 0, 0), 2)
+            if (self.isSq(c)):
+                x,y,w,h = cv2.boundingRect(c)
+                cv2.rectangle(img, (x, y), (x + w, y + h), (250, 0, 0), 2)
+                # cv2.drawContours(img, [c], -1, (255, 0, 0), 2)
         return np.hstack([img, res])
         
+    def hough(self, img):
+        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray,60,120,apertureSize = 3)
+        # return edges
+        minLineLength = 3
+        maxLineGap = 1
+        lines = cv2.HoughLinesP(edges,1,np.pi/180,100,minLineLength,maxLineGap)
+        if lines is None:
+            return img
+        for x1,y1,x2,y2 in lines[0]:
+            cv2.line(img,(x1,y1),(x2,y2),(250,0,0),2)
+        return img
+
+    # def test(self, img):
+    #     sift = cv2.SIFT()
+    #     return img
 
     def simulate(self):
         prevTime = 0
