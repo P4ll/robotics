@@ -35,6 +35,12 @@ class Slam():
     reqDist = 0.55
     frontAdd = -0.15
 
+    useMap = True
+    toPoint = True
+    distX = 5
+    distY = 28
+    angleCf = 0.0005
+
     def addLeftSpeed(self, newSpeed):
         ns = self.leftWeelSpeed + newSpeed
         ns = min(ns, self.maxSpeed)
@@ -93,11 +99,18 @@ class Slam():
         errorCode, self.sensorFH = vrep.simxGetObjectHandle(self.clientID, 'fastHokuyo', vrep.simx_opmode_oneshot_wait)
         self.erCheck(errorCode, 'sensorFH')
 
-        self.mapbytes = bytearray(self.MAP_SIZE_PIXELS * self.MAP_SIZE_PIXELS)
+        if (self.useMap):
+            file = open('robotMap.map', 'rb')
+            self.mapbytes = bytearray(file.read())
+        else:
+            self.mapbytes = bytearray(self.MAP_SIZE_PIXELS * self.MAP_SIZE_PIXELS)
         self.laser = PioLaser()
         self.robot = PioRobot()
         self.slam = RMHC_SLAM(self.laser, self.MAP_SIZE_PIXELS, self.MAP_SIZE_METERS, random_seed = 9999, map_quality=1)
         self.viz = MapVisualizer(self.MAP_SIZE_PIXELS, self.MAP_SIZE_METERS, "1", True)
+        if (self.useMap):
+            self.slam.setmap(self.mapbytes)
+        self.viz.display(self.distX, self.distY, 0, self.mapbytes)
         self.pose = [0, 0, 0]
     
     def erCheck(self, e, str):
@@ -105,23 +118,52 @@ class Slam():
             print('Somthing wrong with {0}'.format(str))
             sys.exit()
 
+    def calcAngle(self, x1, y1, x2, y2):
+        k = (y1 - y2) / (x1 - x2)
+        b = (x1 * y2 - x2 * y1) / (x1 - x2)
+        val = math.atan(math.fabs(k))
+        if k < 0:
+            return 180. - val * 57.2958
+        else:
+            return val * 57.2958
+    
     def simulate(self):
         prevTime = 0
-
+        mayCalc = False
         while vrep.simxGetConnectionId(self.clientID) != -1:
             
             (errorCode, sensorState, sensorDetection, detectedObjectHandle,
                 detectedSurfaceNormalVectorUp) = vrep.simxReadProximitySensor(self.clientID, self.sensor, vrep.simx_opmode_streaming)
             (errorCode, frontState, frontDetection, detectedObjectHandle,
                 detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.sensorFr, vrep.simx_opmode_streaming)
-            if (frontState and sensorState):
-                self.calulate(sensorState, min(sensorDetection[2], frontDetection[2] + self.frontAdd))
-            elif (frontState):
-                self.calulate(frontState, frontDetection[2] + self.frontAdd)
-            elif (sensorState):
-                self.calulate(sensorState, sensorDetection[2])
-            else:
-                self.calulate(sensorState, self.reqDist + 0.1)
+            if (self.toPoint and mayCalc):
+                angle = self.calcAngle(self.pose[0]/1000., self.pose[1]/1000., self.distX, self.distY)
+                delta = -angle + self.pose[2]
+                print(f"robot angle: {self.pose[2]}, course: {angle}")
+                if not frontState and not sensorState:
+                    self.calulate(True, self.reqDist + delta * self.angleCf)
+                elif frontState and sensorState:
+                    val1 = self.reqDist + delta * self.angleCf
+                    val2 = frontDetection[2] + self.frontAdd
+                    val3 = sensorDetection[2]
+                    self.calulate(True, min(val1, min(val2, val3)))
+                elif sensorState:
+                    val1 = self.reqDist + delta * self.angleCf
+                    val2 = sensorDetection[2]
+                    self.calulate(True, min(val1, val2))
+                else:
+                    val1 = self.reqDist + delta * self.angleCf
+                    val2 = frontDetection[2] + self.frontAdd
+                    self.calulate(True, min(val1, val2))
+            else:    
+                if (frontState and sensorState):
+                    self.calulate(sensorState, min(sensorDetection[2], frontDetection[2] + self.frontAdd))
+                elif (frontState):
+                    self.calulate(frontState, frontDetection[2] + self.frontAdd)
+                elif (sensorState):
+                    self.calulate(sensorState, sensorDetection[2])
+                else:
+                    self.calulate(sensorState, self.reqDist + 0.1)
 
             data = vrep.simxGetStringSignal(self.clientID, 'measuredDataAtThisTime', vrep.simx_opmode_streaming)
             dataDists = vrep.simxGetStringSignal(self.clientID, 'dataDistsAtThisTime', vrep.simx_opmode_streaming)
@@ -140,8 +182,12 @@ class Slam():
             self.slam.update(dists) #velocities
             self.pose[0], self.pose[1], self.pose[2] = self.slam.getpos()
             self.slam.getmap(self.mapbytes)
-
-            print(f"Odo: {odometry[0], odometry[1]}, vel: {velocities}, pos: {self.slam.getpos()}")
+            # if keyboard.is_pressed('s'):
+            #     newFile = open('robotMap.map', 'wb')
+            #     newFile.write(self.mapbytes)
+            #     print("saved map: robotMap.map")
+            # print(f"Odo: {odometry[0], odometry[1]}, vel: {velocities}, pos: {self.slam.getpos()}")
+            mayCalc = True
             if not self.viz.display(self.pose[0]/1000., self.pose[1]/1000., self.pose[2], self.mapbytes):
                 exit(0)
 

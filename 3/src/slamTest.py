@@ -15,6 +15,7 @@ from threading import Thread
 import cv2
 import array
 from PIL import Image
+import imutils
 
 
 class Slam():
@@ -37,6 +38,9 @@ class Slam():
 
     reqDist = 0.55
     frontAdd = -0.15
+
+    lowerGreen = np.array([0, 180, 0], dtype=np.uint8)
+    upperGreen = np.array([50, 255, 56], dtype=np.uint8)
 
     def addLeftSpeed(self, newSpeed):
         ns = self.leftWeelSpeed + newSpeed
@@ -110,6 +114,27 @@ class Slam():
             print('Somthing wrong with {0}'.format(str))
             sys.exit()
 
+    def calcVertByCont(self, c):
+        perimetr = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.04 * perimetr, True)
+        return len(approx)
+
+    def imageProcessing(self, img):
+        mask = cv2.inRange(img, self.lowerGreen, self.upperGreen)
+        res = cv2.bitwise_and(img, img, mask=mask)
+        # return res
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
+        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+        for c in cnts:
+            if (self.calcVertByCont(c) == 4):
+                cv2.drawContours(img, [c], -1, (255, 0, 0), 2)
+        return np.hstack([img, res])
+        
+
     def simulate(self):
         prevTime = 0
         res = vrep.simxGetVisionSensorImage(self.clientID, self.visSensor, 0, vrep.simx_opmode_streaming)
@@ -152,13 +177,14 @@ class Slam():
             # if not self.viz.display(self.pose[0]/1000., self.pose[1]/1000., self.pose[2], self.mapbytes):
             #     exit(0)
 
-            res = vrep.simxGetVisionSensorImage(self.clientID, self.visSensor, 0, vrep.simx_opmode_buffer)
-            if (len(res) == 0 or res[0] != vrep.simx_return_ok):
+            visionSensorData = vrep.simxGetVisionSensorImage(self.clientID, self.visSensor, 0, vrep.simx_opmode_buffer)
+            if (len(visionSensorData) == 0 or visionSensorData[0] != vrep.simx_return_ok):
                 continue
-            test = np.array(res[2][::-1], np.uint8)
-            rr = np.reshape(test, (res[1][0], res[1][1], 3), 'C')
-            rr = cv2.flip(rr, 1)
-            cv2.imshow('camera', rr)
+            pixelFlow = np.array(visionSensorData[2][::-1], np.uint8)
+            image = np.reshape(pixelFlow, (visionSensorData[1][0], visionSensorData[1][1], 3), 'C')
+            image = cv2.flip(image, 1)
+            image = self.imageProcessing(image)
+            cv2.imshow('camera', image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         cv2.destroyAllWindows()
