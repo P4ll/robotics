@@ -1,0 +1,135 @@
+Connected to remote server
+done with time =  89.33704708720323 and overshoot = 16.404630921103728
+kP = 0.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  39.10325477466468 and overshoot = 17.901292714205645
+kP = 0.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  33.82272603641627 and overshoot = 37.68705454739656
+kP = 1.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  23.102767550120888 and overshoot = 42.06776835701681
+kP = 1.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  21.132958566895724 and overshoot = 38.86942646720192
+kP = 2.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  19.575853827806895 and overshoot = 36.64828647266734
+kP = 2.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  17.78385795502743 and overshoot = 34.9113421006636
+kP = 3.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  17.04428219055427 and overshoot = 33.19266926158557
+kP = 3.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  15.641061316333378 and overshoot = 32.24910606037486
+kP = 4.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  15.389008950864309 and overshoot = 31.286794489080243
+kP = 4.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  14.500749402063207 and overshoot = 30.447766997597427
+kP = 5.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  13.903062541337864 and overshoot = 30.982626568187356
+kP = 5.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  15.352286891335346 and overshoot = 30.509506572376587
+kP = 5.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  14.254917752934894 and overshoot = 30.079648711464614
+kP = 6.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  12.422912413388588 and overshoot = 29.472591660239466
+kP = 6.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  11.730320309384567 and overshoot = 29.041324962269165
+kP = 7.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  10.794848279665686 and overshoot = 29.030769521539852
+kP = 7.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  9.861361071121195 and overshoot = 28.299388018521388
+kP = 8.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  9.329665363678117 and overshoot = 27.975312146273517
+kP = 8.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  9.3527647577869 and overshoot = 28.142638639970247
+kP = 9.1, kD = 0, kI = 0
+Connected to remote server
+done with time =  9.119563816302474 and overshoot = 26.982287927107368
+kP = 9.6, kD = 0, kI = 0
+Connected to remote server
+done with time =  9.341698059041107 and overshoot = 27.218690785494708
+kP = 10.1, kD = 0, kI = 0
+
+Connected to remote server
+done with time =  8.847217975023554 and overshoot = 28.189422867514857
+kP = 10.1, kD = 0.0, kI = 0.0
+Connected to remote server
+done with time =  9.995435665983727 and overshoot = 27.54654884338378
+kP = 10.1, kD = 0.5, kI = 0.0
+Connected to remote server
+done with time =  9.720853542536002 and overshoot = 27.86640904166481
+kP = 10.1, kD = 1.0, kI = 0.0
+Connected to remote server
+done with time =  9.197737696297303 and overshoot = 27.50266898762095
+kP = 10.1, kD = 1.5, kI = 0.0
+Connected to remote server
+done with time =  9.767524159726335 and overshoot = 26.629352569580067
+kP = 10.1, kD = 2.0, kI = 0.0
+Connected to remote server
+done with time =  9.482799373671938 and overshoot = 28.10679999264803
+kP = 10.1, kD = 2.5, kI = 0.0
+Connected to remote server
+done with time =  9.374959435688936 and overshoot = 28.038438883694727
+kP = 10.1, kD = 3.0, kI = 0.0
+Connected to remote server
+done with time =  10.537300299066516 and overshoot = 28.1237168745561
+kP = 10.1, kD = 3.5, kI = 0.0
+Connected to remote server
+done with time =  10.14625852907092 and overshoot = 28.27469002116809
+kP = 10.1, kD = 4.0, kI = 0.0
+Connected to remote server
+done with time =  10.20369185794658 and overshoot = 27.666365016590454
+kP = 10.1, kD = 4.5, kI = 0.0
+Connected to remote server
+done with time =  11.07029074385062 and overshoot = 27.824371511285946
+kP = 10.1, kD = 5.0, kI = 0.0
+
+
+Connected to remote server
+done with time =  8.759168892735435 and overshoot = 28.48786874250931
+kP = 10.1, kD = 0.5, kI = 0.0
+Connected to remote server
+done with time =  8.132397685109858 and overshoot = 26.42934105613014
+kP = 10.1, kD = 0.5, kI = 0.5
+Connected to remote server
+done with time =  8.735035882246223 and overshoot = 26.721414652737696
+kP = 10.1, kD = 0.5, kI = 1.0
+Connected to remote server
+done with time =  8.166992740837294 and overshoot = 25.969648361206044
+kP = 10.1, kD = 0.5, kI = 1.5
+Connected to remote server
+done with time =  9.05221604152095 and overshoot = 33.543101224032306
+kP = 10.1, kD = 0.5, kI = 2.0
+Connected to remote server
+done with time =  8.098383132974575 and overshoot = 38.30795071341774
+kP = 10.1, kD = 0.5, kI = 2.5
+Connected to remote server
+done with time =  9.362253863307245 and overshoot = 39.41182873465797
+kP = 10.1, kD = 0.5, kI = 3.0
+Connected to remote server
+done with time =  9.36024579783924 and overshoot = 42.12464202534068
+kP = 10.1, kD = 0.5, kI = 3.5
+Connected to remote server
+done with time =  23.922544278115268 and overshoot = 162.9115581512451
+kP = 10.1, kD = 0.5, kI = 4.0
+Connected to remote server
+done with time =  100.10469954335528 and overshoot = 217.9924271323464
+kP = 10.1, kD = 0.5, kI = 4.5
+Connected to remote server
+done with time =  100.01292261974658 and overshoot = 169.9646082791415
+kP = 10.1, kD = 0.5, kI = 5.0
