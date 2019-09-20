@@ -38,8 +38,8 @@ class Slam():
     useMap = True
     toPoint = True
     distX = 5
-    distY = 28
-    angleCf = 0.0005
+    distY = 18#28
+    angleCf = 0.005 #0.0005
 
     def addLeftSpeed(self, newSpeed):
         ns = self.leftWeelSpeed + newSpeed
@@ -122,10 +122,19 @@ class Slam():
         k = (y1 - y2) / (x1 - x2)
         b = (x1 * y2 - x2 * y1) / (x1 - x2)
         val = math.atan(math.fabs(k))
-        if k < 0:
+
+        if (x2 < x1 and y2 > y1):
             return 180. - val * 57.2958
+        elif (x2 < x1 and y2 < y1):
+            return 180. + val * 57.2958
+        elif (x2 > x1 and y2 < y1):
+            return 270 + val * 57.2958
         else:
             return val * 57.2958
+        # if k < 0:
+        #     return 180. - val * 57.2958
+        # else:
+        #     return val * 57.2958
     
     def simulate(self):
         prevTime = 0
@@ -138,7 +147,7 @@ class Slam():
                 detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.sensorFr, vrep.simx_opmode_streaming)
             if (self.toPoint and mayCalc):
                 angle = self.calcAngle(self.pose[0]/1000., self.pose[1]/1000., self.distX, self.distY)
-                delta = -angle + self.pose[2]
+                delta = -angle + self.pose[2] % 360.0
                 print(f"robot angle: {self.pose[2]}, course: {angle}")
                 if not frontState and not sensorState:
                     self.calulate(True, self.reqDist + delta * self.angleCf)

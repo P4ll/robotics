@@ -140,15 +140,17 @@ class Slam():
         res = cv2.bitwise_and(img, img, mask=mask)
         # return res
 
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
+        # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        # thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
         cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
+        font = cv2.FONT_HERSHEY_SIMPLEX
         for c in cnts:
-            if (self.isSq(c)):
+            if (self.isSq(c) or self.calcVertByCont(c) == 4 or self.calcVertByCont(c) == 6):
                 x,y,w,h = cv2.boundingRect(c)
                 cv2.rectangle(img, (x, y), (x + w, y + h), (250, 0, 0), 2)
+                # img = cv2.putText(img, f"{self.calcVertByCont(c)}", ((int)(x + w / 2), (int)(y + h / 2)), font, 4, (255, 0, 0), 2, cv2.LINE_AA)
                 # cv2.drawContours(img, [c], -1, (255, 0, 0), 2)
         return np.hstack([img, res])
         
