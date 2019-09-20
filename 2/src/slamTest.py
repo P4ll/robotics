@@ -15,10 +15,10 @@ from threading import Thread
 
 
 class Slam():
-    MAP_SIZE_PIXELS = 800#800 # 1000
-    MAP_SIZE_METERS = 32#40
+    MAP_SIZE_PIXELS = 800
+    MAP_SIZE_METERS = 32
 
-    propConst = 10.1 # 10.1
+    propConst = 10.1
     integralConst = 1.5
     diffConst = 0.5
 
@@ -38,7 +38,7 @@ class Slam():
     useMap = True
     toPoint = True
     distX = 5
-    distY = 18#28
+    distY = 28
     angleCf = 0.005 #0.0005
 
     def addLeftSpeed(self, newSpeed):
@@ -128,52 +128,49 @@ class Slam():
         elif (x2 < x1 and y2 < y1):
             return 180. + val * 57.2958
         elif (x2 > x1 and y2 < y1):
-            return 270 + val * 57.2958
+            return 270. + val * 57.2958
         else:
             return val * 57.2958
-        # if k < 0:
-        #     return 180. - val * 57.2958
-        # else:
-        #     return val * 57.2958
     
+    def robotControl(self, mayCalc):
+        (errorCode, sensorState, sensorDetection, detectedObjectHandle,
+            detectedSurfaceNormalVectorUp) = vrep.simxReadProximitySensor(self.clientID, self.sensor, vrep.simx_opmode_streaming)
+        (errorCode, frontState, frontDetection, detectedObjectHandle,
+            detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.sensorFr, vrep.simx_opmode_streaming)
+        if (self.toPoint and mayCalc):
+            angle = self.calcAngle(self.pose[0]/1000., self.pose[1]/1000., self.distX, self.distY)
+            delta = -angle + self.pose[2] % 360.0
+            print(f"robot angle: {self.pose[2]}, course: {angle}")
+            if not frontState and not sensorState:
+                self.calulate(True, self.reqDist + delta * self.angleCf)
+            elif frontState and sensorState:
+                val1 = self.reqDist + delta * self.angleCf
+                val2 = frontDetection[2] + self.frontAdd
+                val3 = sensorDetection[2]
+                self.calulate(True, min(val1, min(val2, val3)))
+            elif sensorState:
+                val1 = self.reqDist + delta * self.angleCf
+                val2 = sensorDetection[2]
+                self.calulate(True, min(val1, val2))
+            else:
+                val1 = self.reqDist + delta * self.angleCf
+                val2 = frontDetection[2] + self.frontAdd
+                self.calulate(True, min(val1, val2))
+        else:    
+            if (frontState and sensorState):
+                self.calulate(sensorState, min(sensorDetection[2], frontDetection[2] + self.frontAdd))
+            elif (frontState):
+                self.calulate(frontState, frontDetection[2] + self.frontAdd)
+            elif (sensorState):
+                self.calulate(sensorState, sensorDetection[2])
+            else:
+                self.calulate(sensorState, self.reqDist + 0.1)
+
     def simulate(self):
         prevTime = 0
         mayCalc = False
         while vrep.simxGetConnectionId(self.clientID) != -1:
-            
-            (errorCode, sensorState, sensorDetection, detectedObjectHandle,
-                detectedSurfaceNormalVectorUp) = vrep.simxReadProximitySensor(self.clientID, self.sensor, vrep.simx_opmode_streaming)
-            (errorCode, frontState, frontDetection, detectedObjectHandle,
-                detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.sensorFr, vrep.simx_opmode_streaming)
-            if (self.toPoint and mayCalc):
-                angle = self.calcAngle(self.pose[0]/1000., self.pose[1]/1000., self.distX, self.distY)
-                delta = -angle + self.pose[2] % 360.0
-                print(f"robot angle: {self.pose[2]}, course: {angle}")
-                if not frontState and not sensorState:
-                    self.calulate(True, self.reqDist + delta * self.angleCf)
-                elif frontState and sensorState:
-                    val1 = self.reqDist + delta * self.angleCf
-                    val2 = frontDetection[2] + self.frontAdd
-                    val3 = sensorDetection[2]
-                    self.calulate(True, min(val1, min(val2, val3)))
-                elif sensorState:
-                    val1 = self.reqDist + delta * self.angleCf
-                    val2 = sensorDetection[2]
-                    self.calulate(True, min(val1, val2))
-                else:
-                    val1 = self.reqDist + delta * self.angleCf
-                    val2 = frontDetection[2] + self.frontAdd
-                    self.calulate(True, min(val1, val2))
-            else:    
-                if (frontState and sensorState):
-                    self.calulate(sensorState, min(sensorDetection[2], frontDetection[2] + self.frontAdd))
-                elif (frontState):
-                    self.calulate(frontState, frontDetection[2] + self.frontAdd)
-                elif (sensorState):
-                    self.calulate(sensorState, sensorDetection[2])
-                else:
-                    self.calulate(sensorState, self.reqDist + 0.1)
-
+            self.robotControl(mayCalc)
             data = vrep.simxGetStringSignal(self.clientID, 'measuredDataAtThisTime', vrep.simx_opmode_streaming)
             dataDists = vrep.simxGetStringSignal(self.clientID, 'dataDistsAtThisTime', vrep.simx_opmode_streaming)
             rawOdometry = vrep.simxGetStringSignal(self.clientID, 'odometryAtThisTime', vrep.simx_opmode_streaming)
