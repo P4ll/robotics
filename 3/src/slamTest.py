@@ -152,7 +152,7 @@ class Slam():
                 cv2.rectangle(img, (x, y), (x + w, y + h), (250, 0, 0), 2)
                 # img = cv2.putText(img, f"{self.calcVertByCont(c)}", ((int)(x + w / 2), (int)(y + h / 2)), font, 4, (255, 0, 0), 2, cv2.LINE_AA)
                 # cv2.drawContours(img, [c], -1, (255, 0, 0), 2)
-        return np.hstack([img, res])
+        return np.hstack([img])#, res
         
     def hough(self, img):
         gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)

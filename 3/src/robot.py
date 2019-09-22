@@ -4,9 +4,10 @@ import math
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-from settings import PioLaser, PioRobot
-from slam import MySlam
+import cv2
+import array
+from PIL import Image
+import imutils
 
 
 class Robot():
@@ -22,6 +23,7 @@ class Robot():
         leftWeelSpeed, rightWeelSpeed - std speed
         reqDist - required dist
         frontAdd - smoothing const of front detector
+        lowerGreen, upperGreen - bounds of color detection
     """
     propConst = 10.1
     integralConst = 1.5
@@ -40,6 +42,8 @@ class Robot():
     reqDist = 0.55
     frontAdd = -0.15
 
+    lowerGreen = np.array([0, 180, 0], dtype=np.uint8)
+    upperGreen = np.array([50, 255, 56], dtype=np.uint8)
 
     def __init__(self):
         """
@@ -66,6 +70,8 @@ class Robot():
         self.erCheck(errorCode, 'leftMotor')
         errorCode, self.rightMotor = vrep.simxGetObjectHandle(self.clientID, 'Pioneer_p3dx_rightMotor', vrep.simx_opmode_oneshot_wait)
         self.erCheck(errorCode, 'rightMotor')
+        errorCode, self.visSensor = vrep.simxGetObjectHandle(self.clientID, 'Vision_sensor', vrep.simx_opmode_oneshot_wait)
+        self.erCheck(errorCode, 'visSensor')
 
     def addLeftSpeed(self, newSpeed):
         """
@@ -115,6 +121,42 @@ class Robot():
         if e == -1:
             print('Somthing wrong with {0}'.format(str))
             sys.exit()
+
+    def calcVertByCont(self, c):
+        # calc vertex by contours
+        perimetr = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.04 * perimetr, True)
+        return len(approx)
+
+    def isSq(self, c):
+        # check for square
+        perimetr = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.04 * perimetr, True)
+        
+        if (len(approx) == 6):
+            return True
+        _, _, w, h = cv2.boundingRect(approx)
+        ar = w / float(h)
+
+        return True if ar >= 0.60 and ar <= 1.4 else False
+        # return True if ar >= 0.90 and ar <= 1.1 else False
+
+    def imageProcessing(self, img):
+        # getting mask by color
+        mask = cv2.inRange(img, self.lowerGreen, self.upperGreen)
+        res = cv2.bitwise_and(img, img, mask=mask)
+
+        # getting contours
+        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        
+        # check for cuboid for all cnt
+        for c in cnts:
+            if (self.isSq(c)): #  or self.calcVertByCont(c) == 4 or self.calcVertByCont(c) == 6
+                x,y,w,h = cv2.boundingRect(c)
+                cv2.rectangle(img, (x, y), (x + w, y + h), (250, 0, 0), 2)
+        return img
     
     def robotControl(self):
         # std alg of a Pioneer control
@@ -131,49 +173,28 @@ class Robot():
         else:
             self.calulate(sensorState, self.reqDist + 0.1)
 
-    def slamRobotControl(self, slam):
-        # getting data from a side and front sensors
-        (errorCode, sensorState, sensorDetection, detectedObjectHandle,
-            detectedSurfaceNormalVectorUp) = vrep.simxReadProximitySensor(self.clientID, self.sensor, vrep.simx_opmode_streaming)
-        (errorCode, frontState, frontDetection, detectedObjectHandle,
-            detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.sensorFr, vrep.simx_opmode_streaming)
-        
-        if (slam.toPoint and slam.mayCalc): # if need ride to the point and len(data) != 0
-            # calc angle between Ox and robot line
-            angle = slam.calcAngle(slam.pose[0]/1000., slam.pose[1]/1000., slam.distX, slam.distY)
-            delta = -angle + slam.pose[2] % 360.0
-
-            if not frontState and not sensorState: # if nothing bothers
-                self.calulate(True, self.reqDist + delta * slam.angleCf)
-            elif frontState and sensorState: # if wall right and front
-                val1 = self.reqDist + delta * slam.angleCf
-                val2 = frontDetection[2] + self.frontAdd
-                val3 = sensorDetection[2]
-                self.calulate(True, min(val1, min(val2, val3)))
-            elif sensorState: # if wall right
-                val1 = self.reqDist + delta * slam.angleCf
-                val2 = sensorDetection[2]
-                self.calulate(True, min(val1, val2))
-            else: # wall front
-                val1 = self.reqDist + delta * slam.angleCf
-                val2 = frontDetection[2] + self.frontAdd
-                self.calulate(True, min(val1, val2))
-        else:
-            # std alg
-            if (frontState and sensorState):
-                self.calulate(sensorState, min(sensorDetection[2], frontDetection[2] + self.frontAdd))
-            elif (frontState):
-                self.calulate(frontState, frontDetection[2] + self.frontAdd)
-            elif (sensorState):
-                self.calulate(sensorState, sensorDetection[2])
-            else:
-                self.calulate(sensorState, self.reqDist + 0.1)
-        slam.updateMap(self)
-
     def simulate(self):
-        slam = MySlam(self)
+        res = vrep.simxGetVisionSensorImage(self.clientID, self.visSensor, 0, vrep.simx_opmode_streaming)
+        cv2.namedWindow('camera', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('camera', 400, 400)
+
         while vrep.simxGetConnectionId(self.clientID) != -1:
-            self.slamRobotControl(slam)
+            self.robotControl()
+
+            visionSensorData = vrep.simxGetVisionSensorImage(self.clientID, self.visSensor, 0, vrep.simx_opmode_buffer)
+            if (len(visionSensorData) == 0 or visionSensorData[0] != vrep.simx_return_ok):
+                continue
+
+            pixelFlow = np.array(visionSensorData[2][::-1], np.uint8)
+            image = np.reshape(pixelFlow, (visionSensorData[1][0], visionSensorData[1][1], 3), 'C')
+            image = cv2.flip(image, 1)
+            image = self.imageProcessing(image)
+
+            cv2.imshow('camera', image)
+            
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
