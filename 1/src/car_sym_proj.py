@@ -14,9 +14,9 @@ class Pioneer:
 
     clientID = -1
     #10.1, 0.5, 1.5
-    propConst = 1
-    integralConst = 0
-    diffConst = 0
+    propConst = 12
+    integralConst = 0.05
+    diffConst = 5 # 6
 
     integralMaxVal = 0.2
     integralMinVal = -0.2
@@ -25,6 +25,7 @@ class Pioneer:
 
     leftWeelSpeed = 1
     rightWeelSpeed = 1
+    maxSpeed = 2
 
     reqDist = 1
 
@@ -34,12 +35,16 @@ class Pioneer:
             sys.exit()
 
     def addLeftSpeed(self, newSpeed):
-        e = vrep.simxSetJointTargetVelocity(self.clientID, self.back_left, self.leftWeelSpeed + newSpeed, vrep.simx_opmode_oneshot_wait)
-        e = vrep.simxSetJointTargetVelocity(self.clientID, self.front_left, self.leftWeelSpeed + newSpeed, vrep.simx_opmode_oneshot_wait)
+        newSpeed += self.leftWeelSpeed
+        newSpeed = min(self.maxSpeed, newSpeed)
+        e = vrep.simxSetJointTargetVelocity(self.clientID, self.back_left, newSpeed, vrep.simx_opmode_oneshot_wait)
+        e = vrep.simxSetJointTargetVelocity(self.clientID, self.front_left, newSpeed, vrep.simx_opmode_oneshot_wait)
 
     def addRightSpeed(self, newSpeed):
-        e = vrep.simxSetJointTargetVelocity(self.clientID, self.back_right, -(self.rightWeelSpeed + newSpeed), vrep.simx_opmode_oneshot_wait)
-        e = vrep.simxSetJointTargetVelocity(self.clientID, self.front_right, -(self.rightWeelSpeed + newSpeed), vrep.simx_opmode_oneshot_wait)
+        newSpeed += self.rightWeelSpeed
+        newSpeed = min(self.maxSpeed, newSpeed)
+        e = vrep.simxSetJointTargetVelocity(self.clientID, self.back_right, -newSpeed, vrep.simx_opmode_oneshot_wait)
+        e = vrep.simxSetJointTargetVelocity(self.clientID, self.front_right, -newSpeed, vrep.simx_opmode_oneshot_wait)
 
     def __init__(self):
         vrep.simxFinish(-1)
@@ -92,7 +97,7 @@ class Pioneer:
         diffComponent = self.diffConst * (dist - self.prevDist)
 
         self.prevDist = dist
-        result = propComponent + diffComponent + integralComponent
+        result = propComponent - diffComponent + integralComponent
         
         self.addLeftSpeed(-result)
         self.addRightSpeed(result)
