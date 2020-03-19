@@ -138,7 +138,7 @@ class Pioneer:
             self.timeLine.append(time.clock())
             plt.scatter(self.timeLine[-1], self.dists[-1])
             plt.pause(0.05)
-            time.sleep(0.1)
+            time.sleep(0.12)
         plt.show()
 
 
