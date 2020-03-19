@@ -68,6 +68,8 @@ class Pioneer:
 
         errorCode, self.sonic_sensor = vrep.simxGetObjectHandle(self.clientID, 'disk_sensor', vrep.simx_opmode_oneshot_wait)
         self.erCheck(errorCode, 'sonic sensor')
+        errorCode, self.front_sonic_sensor = vrep.simxGetObjectHandle(self.clientID, 'front_disk_sensor', vrep.simx_opmode_oneshot_wait)
+        self.erCheck(errorCode, 'sonic sensor')
 
         self.addLeftSpeed(0)
         self.addRightSpeed(0)
@@ -119,7 +121,15 @@ class Pioneer:
         while vrep.simxGetConnectionId(self.clientID) != -1:
             (errorCode, sensorState, sensorDetection, detectedObjectHandle,
                 detectedSurfaceNormalVectorUp) = vrep.simxReadProximitySensor(self.clientID, self.sonic_sensor, vrep.simx_opmode_streaming)
-            if (sensorState):
+            (errorCode, frontState, frontDetection, detectedObjectHandle,
+                detectedSurfaceNormalVectorFr) = vrep.simxReadProximitySensor(self.clientID, self.front_sonic_sensor, vrep.simx_opmode_streaming)
+            if (frontState and sensorState):
+                self.calulate(sensorState, min(sensorDetection[2], frontDetection[2]))
+                self.dists.append(min(sensorDetection[2], frontDetection[2]))
+            elif (frontState):
+                self.calulate(frontState, frontDetection[2])
+                self.dists.append(frontDetection[2])
+            elif (sensorState):
                 self.calulate(sensorState, sensorDetection[2])
                 self.dists.append(sensorDetection[2])
             else:
